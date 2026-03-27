@@ -5371,13 +5371,14 @@ def cmd_transcripts_list(args: argparse.Namespace) -> int:
 
 # -------- auto-restart handlers --------
 def _cmd_ar_launch(args):
-    from .supervisor import launch_in_terminal
+    from .supervisor import launch
     cmd = [a for a in args.cmd if a != "--"]
     if not cmd:
         print("Usage: macf_tools auto-restart launch -- <command> [args...]")
         return 1
-    return launch_in_terminal(cmd, name=args.name, restart_delay=args.delay,
-                              terminal=getattr(args, 'terminal', 'auto'))
+    return launch(cmd, name=args.name, restart_delay=args.delay,
+                  new_window=getattr(args, 'new_window', False),
+                  terminal=getattr(args, 'terminal', 'auto'))
 
 def _cmd_ar_list(args=None):
     from .supervisor import list_processes
@@ -6059,12 +6060,13 @@ def _build_parser() -> argparse.ArgumentParser:
     ar_sub = ar_parser.add_subparsers(dest="ar_cmd")
 
     # auto-restart launch
-    ar_launch = ar_sub.add_parser("launch", help="launch supervised process in new terminal")
+    ar_launch = ar_sub.add_parser("launch", help="launch supervised process (direct mode by default)")
     ar_launch.add_argument("--name", "-n", default="", help="display name (default: command basename)")
     ar_launch.add_argument("--delay", "-d", type=int, default=5, help="restart delay in seconds (default: 5)")
+    ar_launch.add_argument("--new-window", "-w", action="store_true", default=False,
+                           help="launch in a new terminal window instead of current terminal")
     ar_launch.add_argument("--terminal", "-t", default="auto",
-                           choices=["auto", "terminal", "iterm2", "gnome-terminal", "xterm", "konsole"],
-                           help="terminal app (default: auto-detect)")
+                           help="terminal app for --new-window mode (default: auto-detect)")
     ar_launch.add_argument("cmd", nargs=argparse.REMAINDER, help="command to supervise (after --)")
     ar_launch.set_defaults(func=lambda args: _cmd_ar_launch(args))
 

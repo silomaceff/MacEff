@@ -91,10 +91,14 @@ def _format_duration(seconds: float) -> str:
     return f"{days}d{remaining_h}h"
 
 
-def launch_in_terminal(cmd_args: list, name: str = "",
-                       restart_delay: int = 5,
-                       terminal: str = "auto") -> int:
-    """Launch a supervised process in a new terminal window.
+def launch(cmd_args: list, name: str = "",
+           restart_delay: int = 5,
+           new_window: bool = False,
+           terminal: str = "auto") -> int:
+    """Launch a supervised process.
+
+    Default: runs supervisor loop directly in the current terminal.
+    With --new-window: opens a new terminal window for the supervisor.
 
     Args:
         cmd_args: Command and arguments to supervise
@@ -113,7 +117,16 @@ def launch_in_terminal(cmd_args: list, name: str = "",
     if not name:
         name = os.path.basename(cmd_args[0])
 
-    # Build the supervisor command that runs in the new terminal
+    # Direct mode (default): run supervisor loop in current terminal
+    if not new_window:
+        print(f"[auto-restart] Starting '{name}' (direct mode)")
+        print(f"[auto-restart] Command: {' '.join(cmd_args)}")
+        print(f"[auto-restart] Restart delay: {restart_delay}s")
+        print(f"[auto-restart] Ctrl-C during countdown to stop\n")
+        run_loop(cmd_args, name=name, restart_delay=restart_delay)
+        return 0
+
+    # New-window mode: build supervisor command for new terminal
     supervisor_cmd = [
         sys.executable, "-m", "macf.supervisor",
         "_run_loop",
