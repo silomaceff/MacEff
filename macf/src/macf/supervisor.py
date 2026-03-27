@@ -231,10 +231,16 @@ def launch(cmd_args: list, name: str = "",
 
 
 def run_loop(cmd_args: list, name: str = "", restart_delay: int = 5):
-    """Run the supervisor loop (called inside the new terminal).
+    """Run the supervisor loop.
 
-    This is the actual supervisor process — manages the child.
+    Default (direct mode): runs in current terminal.
+    Also used inside new terminal windows (--new-window mode).
     """
+    # Ignore SIGTSTP — prevents bash job control from suspending the
+    # supervisor when a child process (e.g. Claude Code) exits and
+    # triggers terminal stop signals in the process group.
+    signal.signal(signal.SIGTSTP, signal.SIG_IGN)
+
     pid = os.getpid()
     created = time.time()
 
