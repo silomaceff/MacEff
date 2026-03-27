@@ -160,16 +160,41 @@ def launch_in_terminal(cmd_args: list, name: str = "",
         time.sleep(1.5)
 
     elif system == "Linux":
-        # Linux: try common terminal emulators
-        for term in ["gnome-terminal", "xterm", "konsole"]:
+        # Linux: portable terminal detection cascade
+        # 1. $TERMINAL env var (user's explicit preference)
+        # 2. x-terminal-emulator (Debian/Ubuntu alternatives system)
+        # 3. xdg-terminal-exec (new XDG standard, freedesktop.org 2024+)
+        # 4. Hardcoded fallback list (last resort)
+        term_candidates = []
+
+        env_terminal = os.environ.get("TERMINAL")
+        if env_terminal:
+            term_candidates.append(env_terminal)
+
+        term_candidates.extend([
+            "x-terminal-emulator",  # Debian alternatives → resolves to system default
+            "xdg-terminal-exec",    # XDG standard (emerging)
+            "gnome-terminal",       # GNOME
+            "lxterminal",           # LXDE / RPi OS
+            "foot",                 # Wayland / wlroots
+            "xterm",                # X11 fallback
+            "konsole",              # KDE
+        ])
+
+        launched = False
+        for term in term_candidates:
             if subprocess.run(["which", term], capture_output=True).returncode == 0:
                 if term == "gnome-terminal":
                     subprocess.Popen([term, "--", *supervisor_cmd])
+                elif term == "xdg-terminal-exec":
+                    subprocess.Popen([term, *supervisor_cmd])
                 else:
                     subprocess.Popen([term, "-e", " ".join(supervisor_cmd)])
                 time.sleep(1.5)
+                launched = True
                 break
-        else:
+
+        if not launched:
             print("No terminal emulator found. Run directly:", file=sys.stderr)
             print(f"  {' '.join(supervisor_cmd)}", file=sys.stderr)
             return 1
